@@ -1,8 +1,9 @@
 import type { RuntimeMessage, AckResponse, CaptionStateResponse } from '../shared/messages';
 import type { CaptionState, CaptionTrack } from '../shared/captions';
-import { findVideo, getVideoId, isWatchPage, readVideoState } from './videoState';
+import { getVideoId, isWatchPage } from './videoState';
 import { isSpanishCode, mapTracks, selectSpanishTrack, type RawTrack } from './captionTracks';
 import { resolveCapturedCaption } from './youtubeCaptions';
+import { youtubeAdapter } from './platforms/youtubeAdapter';
 
 // Content script (ISOLATED world). Runs on every youtube.com page (we gate on
 // the URL at runtime so it survives YouTube's SPA navigations). It pairs with
@@ -67,7 +68,8 @@ function safeSend(message: RuntimeMessage): void {
 // --- Video state -----------------------------------------------------------
 
 function broadcastVideo(): void {
-  safeSend({ type: 'VIDEO_STATE', state: readVideoState() });
+  const state = youtubeAdapter.getVideoState();
+  if (state) safeSend({ type: 'VIDEO_STATE', state });
 }
 
 // --- Caption state ----------------------------------------------------------
@@ -212,7 +214,7 @@ function handleMessage(
 ): boolean {
   switch (message.type) {
     case 'GET_VIDEO_STATE':
-      sendResponse(readVideoState());
+      sendResponse(youtubeAdapter.getVideoState());
       return true;
 
     case 'GET_CAPTION_STATE':
@@ -220,22 +222,16 @@ function handleMessage(
       return true;
 
     case 'REPLAY': {
-      const video = findVideo();
-      if (video) {
-        video.currentTime = Math.max(0, video.currentTime - message.seconds);
-        broadcastVideo();
-      }
-      sendResponse({ ok: !!video } satisfies AckResponse);
+      const ok = youtubeAdapter.replay(message.seconds);
+      if (ok) broadcastVideo();
+      sendResponse({ ok } satisfies AckResponse);
       return true;
     }
 
     case 'SEEK_TO': {
-      const video = findVideo();
-      if (video) {
-        video.currentTime = Math.max(0, message.seconds);
-        broadcastVideo();
-      }
-      sendResponse({ ok: !!video } satisfies AckResponse);
+      const ok = youtubeAdapter.seekTo(message.seconds);
+      if (ok) broadcastVideo();
+      sendResponse({ ok } satisfies AckResponse);
       return true;
     }
 

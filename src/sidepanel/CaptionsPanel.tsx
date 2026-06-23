@@ -1,20 +1,23 @@
-import type { CaptionState } from '../shared/captions';
+import type { CaptionProbe, CaptionState } from '../shared/captions';
+import type { VideoPlatform } from '../shared/types';
 
 interface CaptionsPanelProps {
   caption: CaptionState;
+  platform: VideoPlatform;
 }
 
 /** Status / selected-track summary card. */
-export function CaptionsPanel({ caption }: CaptionsPanelProps) {
+export function CaptionsPanel({ caption, platform }: CaptionsPanelProps) {
   return (
     <section className="card">
       <h2 className="card__heading">Captions</h2>
-      <CaptionsBody caption={caption} />
+      <CaptionsBody caption={caption} platform={platform} />
+      {caption.probe && <ProbeReport probe={caption.probe} />}
     </section>
   );
 }
 
-function CaptionsBody({ caption }: CaptionsPanelProps) {
+function CaptionsBody({ caption, platform }: CaptionsPanelProps) {
   switch (caption.status) {
     case 'idle':
     case 'loading':
@@ -35,6 +38,11 @@ function CaptionsBody({ caption }: CaptionsPanelProps) {
       );
 
     case 'not_found':
+      if (platform === 'canalsur') {
+        return (
+          <p className="empty">Video detected, but no accessible captions found on this page.</p>
+        );
+      }
       return (
         <p className="empty">
           {caption.error === 'no_tracks'
@@ -79,4 +87,37 @@ function CaptionsBody({ caption }: CaptionsPanelProps) {
         </dl>
       );
   }
+}
+
+/** Collapsed developer summary of what the caption-discovery probe found. */
+function ProbeReport({ probe }: { probe: CaptionProbe }) {
+  return (
+    <details className="probe">
+      <summary>Caption probe</summary>
+      <dl className="fields">
+        <div className="field">
+          <dt>Video element</dt>
+          <dd>{probe.videoFound ? 'yes' : 'no'}</dd>
+        </div>
+        <div className="field">
+          <dt>Native text tracks</dt>
+          <dd>{probe.textTracks}</dd>
+        </div>
+        <div className="field">
+          <dt>&lt;track&gt; elements</dt>
+          <dd>{probe.trackElements}</dd>
+        </div>
+        <div className="field">
+          <dt>Caption URLs found</dt>
+          <dd>{probe.captionUrls}</dd>
+        </div>
+        {probe.selectedSource && (
+          <div className="field">
+            <dt>Source</dt>
+            <dd>{probe.selectedSource}</dd>
+          </div>
+        )}
+      </dl>
+    </details>
+  );
 }

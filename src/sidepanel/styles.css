@@ -291,6 +291,29 @@ body {
   word-break: break-word;
 }
 
+/* Caption-discovery probe (collapsed developer summary) */
+.probe {
+  margin-top: 10px;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+
+.probe > summary {
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  user-select: none;
+}
+
+.probe .fields {
+  margin-top: 8px;
+}
+
+.probe .field dd {
+  word-break: break-word;
+}
+
 /* Current subtitle */
 .subtitle {
   display: flex;

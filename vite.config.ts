@@ -3,9 +3,12 @@ import react from '@vitejs/plugin-react';
 
 // Multi-entry build for a Manifest V3 extension.
 //
-// - serviceWorker / youtubeDetector are emitted as standalone JS files.
-//   The content script imports ONLY types (erased at build time), so it has
-//   no runtime imports and is safe to load as a classic content script.
+// - serviceWorker / youtubeDetector / canalSurDetector are emitted as
+//   standalone JS files. Each content script's runtime deps are inlined because
+//   their module graphs are DISJOINT (YouTube imports videoState/*; Canal Sur
+//   imports canalSurAdapter/vttParser; they share only type-only modules, which
+//   erase at build time). That keeps Rollup from extracting a shared chunk and
+//   emitting `import` statements a classic content script can't use.
 // - sidepanel.html is a normal Vite HTML entry (React, ES module).
 //
 // public/ (incl. manifest.json) is copied verbatim into dist/.
@@ -18,6 +21,7 @@ export default defineConfig({
       input: {
         serviceWorker: 'src/background/serviceWorker.ts',
         youtubeDetector: 'src/content/youtubeDetector.ts',
+        canalSurDetector: 'src/content/canalSurDetector.ts',
         captionInterceptor: 'src/content/captionInterceptor.ts',
         sidepanel: 'sidepanel.html',
       },

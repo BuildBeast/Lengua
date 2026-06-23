@@ -2,9 +2,13 @@
   "manifest_version": 3,
   "name": "Lengua",
   "version": "0.1.0",
-  "description": "YouTube-first Spanish learning companion in a Chrome side panel.",
+  "description": "Spanish learning companion (YouTube + Canal Sur) in a Chrome side panel.",
   "permissions": ["sidePanel", "tabs"],
-  "host_permissions": ["*://*.youtube.com/*"],
+  "host_permissions": [
+    "*://*.youtube.com/*",
+    "*://*.canalsur.es/*",
+    "*://*.canalsurmas.es/*"
+  ],
   "background": {
     "service_worker": "serviceWorker.js",
     "type": "module"
@@ -25,6 +29,11 @@
     {
       "matches": ["*://*.youtube.com/*"],
       "js": ["youtubeDetector.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["*://*.canalsur.es/*", "*://*.canalsurmas.es/*"],
+      "js": ["canalSurDetector.js"],
       "run_at": "document_idle"
     }
   ]

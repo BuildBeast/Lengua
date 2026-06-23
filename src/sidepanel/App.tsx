@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { VideoState } from '../shared/types';
+import type { VideoState, VideoPlatform } from '../shared/types';
 import type { CaptionCue, CaptionState } from '../shared/captions';
 import { EMPTY_CAPTION_STATE, findActiveCueIndex } from '../shared/captions';
 import type {
@@ -17,9 +17,19 @@ import { TranscriptList } from './TranscriptList';
 import { ExplanationPanel, type Selection } from './ExplanationPanel';
 import { PlaceholderSection } from './PlaceholderSection';
 
-function isYouTubeUrl(url: string | undefined): boolean {
-  return !!url && /^https?:\/\/([\w-]+\.)*youtube\.com\//.test(url);
+/** Best-effort platform from a tab URL, before any content script replies. */
+function platformFromUrl(url: string | undefined): VideoPlatform {
+  if (!url) return 'unknown';
+  if (/^https?:\/\/([\w-]+\.)*youtube\.com\//.test(url)) return 'youtube';
+  if (/^https?:\/\/([\w-]+\.)*canalsur(?:mas)?\.es\//.test(url)) return 'canalsur';
+  return 'unknown';
 }
+
+const PLATFORM_LABEL: Record<VideoPlatform, string> = {
+  youtube: 'YouTube',
+  canalsur: 'Canal Sur',
+  unknown: 'Unsupported page',
+};
 
 export function App() {
   const [state, setState] = useState<VideoState | null>(null);
@@ -32,6 +42,9 @@ export function App() {
   // sees the latest values.
   const tabIdRef = useRef<number | undefined>(undefined);
   const captionVideoIdRef = useRef<string | null>(null);
+  // Latest bound tab URL, in a ref so the once-registered listeners can compare
+  // platforms across a navigation without going stale.
+  const tabUrlRef = useRef<string | undefined>(undefined);
 
   /** Ask the content script in `tabId` for current video + caption state. */
   const requestState = useCallback((tabId: number) => {
@@ -68,6 +81,7 @@ export function App() {
     chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
       tabIdRef.current = tab?.id;
       captionVideoIdRef.current = null;
+      tabUrlRef.current = tab?.url;
       setTabUrl(tab?.url);
       setState(null);
       setCaption(EMPTY_CAPTION_STATE);
@@ -108,6 +122,15 @@ export function App() {
 
     const onUpdated = (tabId: number, changeInfo: chrome.tabs.TabChangeInfo) => {
       if (tabId === tabIdRef.current && changeInfo.url) {
+        // Crossing platforms (e.g. YouTube -> Canal Sur in the same tab) must
+        // not leave the previous platform's video/captions on screen. Clearing
+        // only on a platform change avoids flicker on YouTube SPA navigations.
+        if (platformFromUrl(changeInfo.url) !== platformFromUrl(tabUrlRef.current)) {
+          captionVideoIdRef.current = null;
+          setState(null);
+          setCaption(EMPTY_CAPTION_STATE);
+        }
+        tabUrlRef.current = changeInfo.url;
         setTabUrl(changeInfo.url);
         requestState(tabId);
       }
@@ -163,7 +186,10 @@ export function App() {
   );
 
   const hasCaptions = caption.status === 'ready' && caption.cues.length > 0;
-  const onYouTube = state?.isWatchPage || isYouTubeUrl(tabUrl);
+  // Trust the content script's reported platform once it replies; fall back to
+  // the tab URL so we can label the panel before the first message arrives.
+  const platform = state?.platform ?? platformFromUrl(tabUrl);
+  const isSupported = platform === 'youtube' || platform === 'canalsur';
 
   return (
     <div className="app">
@@ -174,8 +200,12 @@ export function App() {
 
       <main className="content">
         <section className="card">
-          <h2 className="card__heading">Video</h2>
-          {!onYouTube || !state?.isWatchPage ? (
+          <h2 className="card__heading">Video · {PLATFORM_LABEL[platform]}</h2>
+          {!isSupported ? (
+            <p className="empty">Open a YouTube or Canal Sur video to begin.</p>
+          ) : !state ? (
+            <p className="empty">Looking for video…</p>
+          ) : platform === 'youtube' && !state.isWatchPage ? (
             <p className="empty">Open a YouTube video to begin.</p>
           ) : !state.hasVideo ? (
             <p className="empty">Looking for video…</p>
@@ -184,7 +214,7 @@ export function App() {
           )}
         </section>
 
-        <CaptionsPanel caption={caption} />
+        <CaptionsPanel caption={caption} platform={platform} />
 
         {/* Selecting text anywhere in here offers a translation. */}
         <div className="captions-region" onMouseUp={selectPhrase}>

@@ -43,6 +43,7 @@ export function findVideo(): HTMLVideoElement | null {
 }
 
 const INACTIVE: VideoState = {
+  platform: 'youtube',
   isWatchPage: false,
   hasVideo: false,
   videoId: null,
@@ -67,6 +68,7 @@ export function readVideoState(): VideoState {
   }
 
   return {
+    platform: 'youtube',
     isWatchPage: true,
     hasVideo: true,
     videoId: id,

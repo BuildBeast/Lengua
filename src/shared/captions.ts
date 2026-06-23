@@ -37,8 +37,27 @@ export type CaptionStatus =
   | 'error';
 
 /**
+ * Result of a platform's caption-discovery probe. Surfaced (collapsed) in the
+ * side panel so it's clear *what* was looked for when captions can't be shown.
+ * Generic across platforms — currently populated by the Canal Sur adapter.
+ */
+export interface CaptionProbe {
+  /** Whether an HTML <video> element was found on the page. */
+  videoFound: boolean;
+  /** Count of native `video.textTracks`. */
+  textTracks: number;
+  /** Count of `<track kind="subtitles|captions">` elements. */
+  trackElements: number;
+  /** Count of candidate caption URLs (VTT/JSON/XML) discovered in the page. */
+  captionUrls: number;
+  /** Human label for the source the cues were loaded from, if any. */
+  selectedSource?: string;
+}
+
+/**
  * `error` is a short machine-ish reason (e.g. "no_tracks", "no_spanish",
- * "parse_failed", or a thrown message) that the UI maps to a human message.
+ * "parse_failed", "no_captions", or a thrown message) that the UI maps to a
+ * human message.
  */
 export interface CaptionState {
   status: CaptionStatus;
@@ -46,6 +65,8 @@ export interface CaptionState {
   tracks: CaptionTrack[];
   cues: CaptionCue[];
   error?: string;
+  /** Diagnostics from a discovery probe (Canal Sur). */
+  probe?: CaptionProbe;
 }
 
 export const EMPTY_CAPTION_STATE: CaptionState = {
