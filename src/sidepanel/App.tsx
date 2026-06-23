@@ -14,6 +14,7 @@ import { VideoStatus } from './VideoStatus';
 import { CaptionsPanel } from './CaptionsPanel';
 import { CurrentSubtitle } from './CurrentSubtitle';
 import { TranscriptList } from './TranscriptList';
+import { ExplanationPanel, type Selection } from './ExplanationPanel';
 import { PlaceholderSection } from './PlaceholderSection';
 
 function isYouTubeUrl(url: string | undefined): boolean {
@@ -24,6 +25,7 @@ export function App() {
   const [state, setState] = useState<VideoState | null>(null);
   const [caption, setCaption] = useState<CaptionState>(EMPTY_CAPTION_STATE);
   const [tabUrl, setTabUrl] = useState<string | undefined>(undefined);
+  const [selection, setSelection] = useState<Selection | null>(null);
 
   // The tab the panel is bound to + the video id we currently hold captions
   // for. Both live in refs so the (once-registered) message listener always
@@ -135,6 +137,24 @@ export function App() {
 
   const seekToCue = useCallback((cue: CaptionCue) => seekTo(cue.start), [seekTo]);
 
+  // Click a word in the current subtitle -> translate that word.
+  const selectWord = useCallback((word: string, cue: CaptionCue) => {
+    if (word.trim()) setSelection({ text: word.trim(), atTime: cue.start });
+  }, []);
+
+  // Drag-select any text in the captions region (current subtitle or
+  // transcript) -> translate the selected phrase or sentence as-is.
+  const selectPhrase = useCallback(() => {
+    const text = window.getSelection?.()?.toString().trim();
+    if (text) setSelection({ text });
+  }, []);
+
+  // Translate the whole active subtitle line without manual selection.
+  const translateLine = useCallback((cue: CaptionCue) => {
+    const text = cue.text.trim();
+    if (text) setSelection({ text, atTime: cue.start });
+  }, []);
+
   // Active cue is derived from the latest playback time + loaded cues, so it
   // tracks both natural playback and manual seeking.
   const activeIndex = useMemo(
@@ -166,18 +186,21 @@ export function App() {
 
         <CaptionsPanel caption={caption} />
 
-        <CurrentSubtitle
-          activeIndex={activeIndex}
-          cues={caption.cues}
-          hasCaptions={hasCaptions}
-          onReplayLine={seekToCue}
-        />
+        {/* Selecting text anywhere in here offers a translation. */}
+        <div className="captions-region" onMouseUp={selectPhrase}>
+          <CurrentSubtitle
+            activeIndex={activeIndex}
+            cues={caption.cues}
+            hasCaptions={hasCaptions}
+            onReplayLine={seekToCue}
+            onTranslateLine={translateLine}
+            onWord={selectWord}
+          />
 
-        <TranscriptList cues={caption.cues} activeIndex={activeIndex} onSeek={seekToCue} />
+          <TranscriptList cues={caption.cues} activeIndex={activeIndex} onSeek={seekToCue} />
+        </div>
 
-        <PlaceholderSection title="Explanation">
-          Select a word or phrase from mirrored captions to explain it.
-        </PlaceholderSection>
+        <ExplanationPanel selection={selection} />
 
         <PlaceholderSection title="Saved phrases">
           Saved phrases will appear here.

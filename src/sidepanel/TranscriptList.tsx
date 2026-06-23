@@ -34,15 +34,17 @@ export function TranscriptList({ cues, activeIndex, onSeek }: TranscriptListProp
                 ref={isActive ? activeRef : undefined}
                 className={`transcript__row${isActive ? ' transcript__row--active' : ''}`}
               >
+                {/* Only the timestamp seeks — the text stays plain selectable
+                    so dragging across it doesn't trigger a jump. */}
                 <button
                   type="button"
-                  className="transcript__btn"
+                  className="transcript__time"
                   onClick={() => onSeek(cue)}
                   title="Jump to this line"
                 >
-                  <span className="transcript__time">{formatTime(cue.start)}</span>
-                  <span className="transcript__text">{cue.text}</span>
+                  {formatTime(cue.start)}
                 </button>
+                <span className="transcript__text">{cue.text}</span>
               </li>
             );
           })}

@@ -1,4 +1,5 @@
 import type { CaptionCue } from '../shared/captions';
+import { Words } from './Words';
 
 interface CurrentSubtitleProps {
   /** -1 when no cue is active at the current playback time. */
@@ -6,14 +7,22 @@ interface CurrentSubtitleProps {
   cues: CaptionCue[];
   hasCaptions: boolean;
   onReplayLine: (cue: CaptionCue) => void;
+  onTranslateLine: (cue: CaptionCue) => void;
+  onWord: (word: string, cue: CaptionCue) => void;
 }
 
-/** Previous / current / next lines, plus a replay-current-line control. */
+/**
+ * Previous / current / next lines. Click a word to translate it, drag-select
+ * to translate a phrase, or use the controls to translate / replay the whole
+ * active line.
+ */
 export function CurrentSubtitle({
   activeIndex,
   cues,
   hasCaptions,
   onReplayLine,
+  onTranslateLine,
+  onWord,
 }: CurrentSubtitleProps) {
   const active = activeIndex >= 0 ? cues[activeIndex] : undefined;
   const prev = activeIndex > 0 ? cues[activeIndex - 1] : undefined;
@@ -30,7 +39,9 @@ export function CurrentSubtitle({
           {prev && <p className="subtitle__line subtitle__line--muted">{prev.text}</p>}
 
           {active ? (
-            <p className="subtitle__line subtitle__line--current">{active.text}</p>
+            <p className="subtitle__line subtitle__line--current">
+              <Words text={active.text} onWord={(w) => onWord(w, active)} />
+            </p>
           ) : (
             <p className="subtitle__line subtitle__line--current empty">
               No active subtitle at this moment.
@@ -39,14 +50,24 @@ export function CurrentSubtitle({
 
           {next && <p className="subtitle__line subtitle__line--muted">{next.text}</p>}
 
-          <button
-            type="button"
-            className="btn"
-            disabled={!active}
-            onClick={() => active && onReplayLine(active)}
-          >
-            ⟲ Replay current line
-          </button>
+          <div className="subtitle__actions">
+            <button
+              type="button"
+              className="btn"
+              disabled={!active}
+              onClick={() => active && onTranslateLine(active)}
+            >
+              Translate current line
+            </button>
+            <button
+              type="button"
+              className="btn"
+              disabled={!active}
+              onClick={() => active && onReplayLine(active)}
+            >
+              ⟲ Replay current line
+            </button>
+          </div>
         </div>
       )}
     </section>

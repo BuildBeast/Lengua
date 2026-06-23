@@ -184,6 +184,89 @@ body {
   cursor: not-allowed;
 }
 
+/* Keep the wrapped caption cards spaced like the rest of the column. */
+.captions-region {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Clickable words */
+.word {
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  padding: 0 1px;
+  margin: 0;
+  cursor: pointer;
+  border-radius: 3px;
+  /* Keep words drag-selectable so multi-word phrases can be highlighted. */
+  user-select: text;
+}
+
+.word:hover {
+  background: rgba(255, 90, 95, 0.28);
+}
+
+/* Explanation */
+.explain {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.explain__source {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.explain__time {
+  color: var(--text-muted);
+  font-weight: 400;
+  font-size: 12px;
+}
+
+.explain__english {
+  margin: 0;
+  font-size: 15px;
+  color: var(--playing);
+}
+
+.explain__english--muted {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-style: italic;
+}
+
+.explain__fallback {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.explain__fallback-label {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.link-btn {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.link-btn:hover {
+  border-color: #3a4250;
+}
+
 .hint {
   margin: 8px 0 0;
   color: var(--text);
@@ -229,9 +312,12 @@ body {
   font-weight: 600;
   line-height: 1.4;
   color: var(--text);
+  user-select: text;
 }
 
-.subtitle .btn {
+.subtitle__actions {
+  display: flex;
+  gap: 8px;
   margin-top: 8px;
 }
 
@@ -246,41 +332,40 @@ body {
 }
 
 .transcript__row {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
   border-bottom: 1px solid var(--border);
+  padding: 7px 6px;
+  border-radius: 6px;
 }
 
 .transcript__row:last-child {
   border-bottom: none;
 }
 
-.transcript__btn {
-  display: flex;
-  gap: 10px;
-  width: 100%;
-  text-align: left;
-  background: transparent;
-  border: none;
-  color: var(--text);
-  padding: 7px 6px;
-  cursor: pointer;
-  font: inherit;
-  border-radius: 6px;
-}
-
-.transcript__btn:hover {
-  background: var(--surface-2);
-}
-
-.transcript__row--active .transcript__btn {
+.transcript__row--active {
   background: rgba(255, 90, 95, 0.14);
 }
 
+/* Timestamp is the only seek control, so the text beside it stays selectable. */
 .transcript__time {
   flex: 0 0 auto;
+  background: transparent;
+  border: none;
   color: var(--text-muted);
+  font: inherit;
   font-variant-numeric: tabular-nums;
   font-size: 12px;
-  padding-top: 1px;
+  padding: 1px 4px 0;
+  margin: -1px -4px 0;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.transcript__time:hover {
+  background: var(--surface-2);
+  color: var(--text);
 }
 
 .transcript__row--active .transcript__time {
@@ -290,6 +375,7 @@ body {
 .transcript__text {
   flex: 1;
   word-break: break-word;
+  user-select: text;
 }
 
 .transcript__row--active .transcript__text {
