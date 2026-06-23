@@ -18,6 +18,7 @@ export default defineConfig({
       input: {
         serviceWorker: 'src/background/serviceWorker.ts',
         youtubeDetector: 'src/content/youtubeDetector.ts',
+        captionInterceptor: 'src/content/captionInterceptor.ts',
         sidepanel: 'sidepanel.html',
       },
       output: {

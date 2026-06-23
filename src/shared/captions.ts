@@ -27,7 +27,14 @@ export interface CaptionTrack {
   url: string;
 }
 
-export type CaptionStatus = 'idle' | 'loading' | 'ready' | 'not_found' | 'error';
+export type CaptionStatus =
+  | 'idle'
+  | 'loading'
+  /** Spanish track exists, but we haven't captured its cues yet (CC is off). */
+  | 'awaiting_captions'
+  | 'ready'
+  | 'not_found'
+  | 'error';
 
 /**
  * `error` is a short machine-ish reason (e.g. "no_tracks", "no_spanish",

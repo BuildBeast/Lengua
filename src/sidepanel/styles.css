@@ -184,6 +184,30 @@ body {
   cursor: not-allowed;
 }
 
+.hint {
+  margin: 8px 0 0;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.5;
+  background: rgba(255, 90, 95, 0.1);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.diag {
+  margin: 8px 0 0;
+  padding: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 /* Current subtitle */
 .subtitle {
   display: flex;

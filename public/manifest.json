@@ -18,6 +18,12 @@
   "content_scripts": [
     {
       "matches": ["*://*.youtube.com/*"],
+      "js": ["captionInterceptor.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["*://*.youtube.com/*"],
       "js": ["youtubeDetector.js"],
       "run_at": "document_idle"
     }

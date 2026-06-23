@@ -20,6 +20,20 @@ function CaptionsBody({ caption }: CaptionsPanelProps) {
     case 'loading':
       return <p className="empty">Looking for captions…</p>;
 
+    case 'awaiting_captions':
+      return (
+        <>
+          <p className="empty">
+            Spanish captions available
+            {caption.selectedTrack ? ` (${caption.selectedTrack.name})` : ''}.
+          </p>
+          <p className="hint">
+            Turn on subtitles (CC) on the video and choose the Spanish track — Lengua mirrors
+            them here automatically.
+          </p>
+        </>
+      );
+
     case 'not_found':
       return (
         <p className="empty">
@@ -29,14 +43,20 @@ function CaptionsBody({ caption }: CaptionsPanelProps) {
         </p>
       );
 
-    case 'error':
+    case 'error': {
+      const isParse = caption.error?.startsWith('parse_failed');
+      const diagnostics = isParse ? caption.error?.replace(/^parse_failed \| /, '') : undefined;
       return (
-        <p className="empty">
-          {caption.error === 'parse_failed'
-            ? 'Captions found, but could not be parsed.'
-            : 'Captions unavailable for this video.'}
-        </p>
+        <>
+          <p className="empty">
+            {isParse
+              ? 'Captions found, but could not be parsed.'
+              : 'Captions unavailable for this video.'}
+          </p>
+          {diagnostics && <pre className="diag">{diagnostics}</pre>}
+        </>
       );
+    }
 
     case 'ready':
       return (
