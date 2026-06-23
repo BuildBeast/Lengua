@@ -344,6 +344,41 @@ body {
   margin-top: 8px;
 }
 
+/* Manual transcript (no-caption fallback) */
+.manual-input {
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font: inherit;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.manual-input::placeholder {
+  color: var(--text-muted);
+}
+
+.manual-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* Pasted lines have no timestamps, so they read as a plain paragraph list. */
+.transcript--manual .transcript__row {
+  padding: 6px 4px;
+}
+
+.coming-soon {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-style: italic;
+}
+
 /* Transcript */
 .transcript {
   list-style: none;

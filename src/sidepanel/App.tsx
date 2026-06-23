@@ -15,6 +15,7 @@ import { CaptionsPanel } from './CaptionsPanel';
 import { CurrentSubtitle } from './CurrentSubtitle';
 import { TranscriptList } from './TranscriptList';
 import { ExplanationPanel, type Selection } from './ExplanationPanel';
+import { ManualTranscript } from './ManualTranscript';
 import { PlaceholderSection } from './PlaceholderSection';
 
 /** Best-effort platform from a tab URL, before any content script replies. */
@@ -191,6 +192,15 @@ export function App() {
   const platform = state?.platform ?? platformFromUrl(tabUrl);
   const isSupported = platform === 'youtube' || platform === 'canalsur';
 
+  // A video is on screen but caption discovery came up empty (or failed):
+  // offer the manual paste fallback instead of the timed-cue transcript.
+  // `awaiting_captions` is excluded — there captions exist, the user just
+  // needs to switch CC on.
+  const manualMode =
+    isSupported &&
+    !!state?.hasVideo &&
+    (caption.status === 'not_found' || caption.status === 'error');
+
   return (
     <div className="app">
       <header className="header">
@@ -218,16 +228,27 @@ export function App() {
 
         {/* Selecting text anywhere in here offers a translation. */}
         <div className="captions-region" onMouseUp={selectPhrase}>
-          <CurrentSubtitle
-            activeIndex={activeIndex}
-            cues={caption.cues}
-            hasCaptions={hasCaptions}
-            onReplayLine={seekToCue}
-            onTranslateLine={translateLine}
-            onWord={selectWord}
-          />
+          {manualMode ? (
+            <ManualTranscript
+              onWord={(word) => {
+                const text = word.trim();
+                if (text) setSelection({ text });
+              }}
+            />
+          ) : (
+            <>
+              <CurrentSubtitle
+                activeIndex={activeIndex}
+                cues={caption.cues}
+                hasCaptions={hasCaptions}
+                onReplayLine={seekToCue}
+                onTranslateLine={translateLine}
+                onWord={selectWord}
+              />
 
-          <TranscriptList cues={caption.cues} activeIndex={activeIndex} onSeek={seekToCue} />
+              <TranscriptList cues={caption.cues} activeIndex={activeIndex} onSeek={seekToCue} />
+            </>
+          )}
         </div>
 
         <ExplanationPanel selection={selection} />
