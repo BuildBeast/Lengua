@@ -1,7 +1,19 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { VideoState } from '../shared/types';
-import type { GetVideoStateMessage, ReplayMessage, RuntimeMessage } from '../shared/messages';
+import type { CaptionCue, CaptionState } from '../shared/captions';
+import { EMPTY_CAPTION_STATE, findActiveCueIndex } from '../shared/captions';
+import type {
+  CaptionStateResponse,
+  GetCaptionStateMessage,
+  GetVideoStateMessage,
+  ReplayMessage,
+  RuntimeMessage,
+  SeekToMessage,
+} from '../shared/messages';
 import { VideoStatus } from './VideoStatus';
+import { CaptionsPanel } from './CaptionsPanel';
+import { CurrentSubtitle } from './CurrentSubtitle';
+import { TranscriptList } from './TranscriptList';
 import { PlaceholderSection } from './PlaceholderSection';
 
 function isYouTubeUrl(url: string | undefined): boolean {
@@ -10,24 +22,39 @@ function isYouTubeUrl(url: string | undefined): boolean {
 
 export function App() {
   const [state, setState] = useState<VideoState | null>(null);
+  const [caption, setCaption] = useState<CaptionState>(EMPTY_CAPTION_STATE);
   const [tabUrl, setTabUrl] = useState<string | undefined>(undefined);
 
-  // The tab the panel is currently bound to. Kept in a ref so the message
-  // listener (registered once) always sees the latest value.
+  // The tab the panel is bound to + the video id we currently hold captions
+  // for. Both live in refs so the (once-registered) message listener always
+  // sees the latest values.
   const tabIdRef = useRef<number | undefined>(undefined);
+  const captionVideoIdRef = useRef<string | null>(null);
 
-  /** Ask the content script in `tabId` for a fresh snapshot. */
+  /** Ask the content script in `tabId` for current video + caption state. */
   const requestState = useCallback((tabId: number) => {
-    const message: GetVideoStateMessage = { type: 'GET_VIDEO_STATE' };
+    const getVideo: GetVideoStateMessage = { type: 'GET_VIDEO_STATE' };
     chrome.tabs
-      .sendMessage<GetVideoStateMessage, VideoState>(tabId, message)
+      .sendMessage<GetVideoStateMessage, VideoState>(tabId, getVideo)
       .then((reply) => {
         if (tabIdRef.current === tabId) setState(reply ?? null);
       })
-      // No content script on this tab (not a YouTube page) — clear state and
-      // let the URL drive the empty state.
+      // No content script on this tab (not a YouTube page) — clear and let the
+      // URL drive the empty state.
       .catch(() => {
         if (tabIdRef.current === tabId) setState(null);
+      });
+
+    const getCaptions: GetCaptionStateMessage = { type: 'GET_CAPTION_STATE' };
+    chrome.tabs
+      .sendMessage<GetCaptionStateMessage, CaptionStateResponse>(tabId, getCaptions)
+      .then((reply) => {
+        if (tabIdRef.current !== tabId || !reply) return;
+        captionVideoIdRef.current = reply.videoId;
+        setCaption(reply.state);
+      })
+      .catch(() => {
+        if (tabIdRef.current === tabId) setCaption(EMPTY_CAPTION_STATE);
       });
   }, []);
 
@@ -38,8 +65,10 @@ export function App() {
     if (!chrome?.tabs?.query) return;
     chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
       tabIdRef.current = tab?.id;
+      captionVideoIdRef.current = null;
       setTabUrl(tab?.url);
       setState(null);
+      setCaption(EMPTY_CAPTION_STATE);
       if (tab?.id !== undefined) requestState(tab.id);
     });
   }, [requestState]);
@@ -50,20 +79,31 @@ export function App() {
     // Skip listener wiring when extension APIs are unavailable (dev tab).
     if (!chrome?.runtime?.onMessage || !chrome?.tabs?.onActivated) return;
 
-    // Live snapshots pushed by the content script of the bound tab.
     const onMessage = (message: RuntimeMessage, sender: chrome.runtime.MessageSender) => {
-      if (message.type === 'VIDEO_STATE' && sender.tab?.id === tabIdRef.current) {
+      if (sender.tab?.id !== tabIdRef.current) return;
+
+      if (message.type === 'VIDEO_STATE') {
         setState(message.state);
+        // Defensive: if the video changed but the matching CAPTION_STATE hasn't
+        // arrived yet, drop stale cues so we never show the wrong transcript.
+        if (
+          message.state.videoId &&
+          captionVideoIdRef.current &&
+          message.state.videoId !== captionVideoIdRef.current
+        ) {
+          captionVideoIdRef.current = message.state.videoId;
+          setCaption(EMPTY_CAPTION_STATE);
+        }
+      } else if (message.type === 'CAPTION_STATE') {
+        captionVideoIdRef.current = message.videoId;
+        setCaption(message.state);
       }
     };
     chrome.runtime.onMessage.addListener(onMessage);
 
-    // Re-bind when the user switches tabs.
     const onActivated = () => syncActiveTab();
     chrome.tabs.onActivated.addListener(onActivated);
 
-    // Catch full-navigation URL changes on the bound tab (the content script
-    // handles in-app SPA navigations on its own).
     const onUpdated = (tabId: number, changeInfo: chrome.tabs.TabChangeInfo) => {
       if (tabId === tabIdRef.current && changeInfo.url) {
         setTabUrl(changeInfo.url);
@@ -86,8 +126,23 @@ export function App() {
     chrome.tabs.sendMessage(tabId, message).catch(() => {});
   }, []);
 
-  // The active tab is "on YouTube" if either the content script responded or
-  // the URL looks like youtube.com.
+  const seekTo = useCallback((seconds: number) => {
+    const tabId = tabIdRef.current;
+    if (tabId === undefined) return;
+    const message: SeekToMessage = { type: 'SEEK_TO', seconds };
+    chrome.tabs.sendMessage(tabId, message).catch(() => {});
+  }, []);
+
+  const seekToCue = useCallback((cue: CaptionCue) => seekTo(cue.start), [seekTo]);
+
+  // Active cue is derived from the latest playback time + loaded cues, so it
+  // tracks both natural playback and manual seeking.
+  const activeIndex = useMemo(
+    () => findActiveCueIndex(caption.cues, state?.currentTime ?? 0),
+    [caption.cues, state?.currentTime],
+  );
+
+  const hasCaptions = caption.status === 'ready' && caption.cues.length > 0;
   const onYouTube = state?.isWatchPage || isYouTubeUrl(tabUrl);
 
   return (
@@ -100,9 +155,7 @@ export function App() {
       <main className="content">
         <section className="card">
           <h2 className="card__heading">Video</h2>
-          {!onYouTube ? (
-            <p className="empty">Open a YouTube video to begin.</p>
-          ) : !state?.isWatchPage ? (
+          {!onYouTube || !state?.isWatchPage ? (
             <p className="empty">Open a YouTube video to begin.</p>
           ) : !state.hasVideo ? (
             <p className="empty">Looking for video…</p>
@@ -111,13 +164,16 @@ export function App() {
           )}
         </section>
 
-        <PlaceholderSection title="Captions">
-          Caption extraction coming next.
-        </PlaceholderSection>
+        <CaptionsPanel caption={caption} />
 
-        <PlaceholderSection title="Current subtitle">
-          Current subtitle will appear here once captions are connected.
-        </PlaceholderSection>
+        <CurrentSubtitle
+          activeIndex={activeIndex}
+          cues={caption.cues}
+          hasCaptions={hasCaptions}
+          onReplayLine={seekToCue}
+        />
+
+        <TranscriptList cues={caption.cues} activeIndex={activeIndex} onSeek={seekToCue} />
 
         <PlaceholderSection title="Explanation">
           Select a word or phrase from mirrored captions to explain it.

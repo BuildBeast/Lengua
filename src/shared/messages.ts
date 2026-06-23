@@ -1,4 +1,5 @@
 import type { VideoState } from './types';
+import type { CaptionState } from './captions';
 
 // Message protocol between the side panel, the background worker, and the
 // content script. This module is TYPE-ONLY on purpose: it exports no runtime
@@ -23,9 +24,39 @@ export interface ReplayMessage {
   seconds: number;
 }
 
-export type RuntimeMessage = GetVideoStateMessage | VideoStateMessage | ReplayMessage;
+/** Side panel -> content script: seek to an absolute time in seconds. */
+export interface SeekToMessage {
+  type: 'SEEK_TO';
+  seconds: number;
+}
 
-/** Reply to a REPLAY message. */
-export interface ReplayResponse {
+/** Side panel -> content script: please reply with the current CaptionState. */
+export interface GetCaptionStateMessage {
+  type: 'GET_CAPTION_STATE';
+}
+
+/** Content script -> everyone: caption state for `videoId` changed. */
+export interface CaptionStateMessage {
+  type: 'CAPTION_STATE';
+  videoId: string | null;
+  state: CaptionState;
+}
+
+export type RuntimeMessage =
+  | GetVideoStateMessage
+  | VideoStateMessage
+  | ReplayMessage
+  | SeekToMessage
+  | GetCaptionStateMessage
+  | CaptionStateMessage;
+
+/** Reply to REPLAY / SEEK_TO. */
+export interface AckResponse {
   ok: boolean;
+}
+
+/** Reply to GET_CAPTION_STATE. */
+export interface CaptionStateResponse {
+  videoId: string | null;
+  state: CaptionState;
 }
