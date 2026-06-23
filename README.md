@@ -1,11 +1,27 @@
 # Lengua
 
-A YouTube-first Chrome side-panel companion for learning Spanish from real
-video content (Andalusian / Canal Sur–style listening practice).
+A Chrome side-panel companion for learning Spanish from real video content
+(Andalusian / Canal Sur–style listening practice). It detects the active video,
+mirrors its state and Spanish captions into the side panel, syncs the current
+subtitle + transcript, and offers local quick-translation of selected text.
 
-**Sprint 1 = foundation only.** The extension detects the active YouTube video
-and mirrors its state into a side panel, with replay controls and placeholder
-sections for the features coming next (captions, explanation, saved phrases).
+Supported platforms today: **YouTube** and **Canal Sur / CanalSur Más**, behind
+a small platform-adapter boundary so new sources can be added without rewriting
+the core.
+
+## Platform support
+
+- **YouTube** — Spanish caption tracks are mirrored into the panel (turn on
+  Spanish CC on the video; cues are captured from the player).
+- **CanalSur Más** — native text tracks (`<track>` / `video.textTracks`,
+  including ESP subtitles) are supported when the page exposes them. Verified on
+  a real native-track video (1888 cues: current-subtitle sync, transcript
+  highlight, and replay-current-line all work).
+- **No-caption fallback is future work.** Many Canal Sur videos may have no
+  accessible captions (e.g. behind HLS/DRM or a separate media CDN). In that
+  case the panel shows a clear "video detected, but no accessible captions
+  found" state plus a collapsed caption-probe report. On-device transcription
+  for un-captioned videos is not implemented yet.
 
 ## Stack
 
@@ -23,16 +39,32 @@ lengua/
     background/
       serviceWorker.ts      # opens the side panel from the toolbar icon
     content/
-      youtubeDetector.ts    # content-script entry: polling + messaging
+      youtubeDetector.ts    # YouTube content-script entry: polling + messaging
+      captionInterceptor.ts # MAIN-world hook capturing YouTube caption requests
       videoState.ts         # reads video state from the YouTube DOM
+      captionTracks.ts      # YouTube track shaping + Spanish selection
+      youtubeCaptions.ts    # YouTube caption fetch/parse (srv1/srv3/json3)
+      canalSurDetector.ts   # Canal Sur content-script entry: polling + probe
+      vttParser.ts          # self-contained WebVTT/SRT parser
+      platforms/
+        types.ts            # PlatformAdapter boundary (type-only)
+        youtubeAdapter.ts   # YouTube video-state + controls adapter
+        canalSurAdapter.ts  # Canal Sur detection, controls, caption probe
     sidepanel/
       main.tsx              # React bootstrap
-      App.tsx               # panel state + chrome messaging
+      App.tsx               # panel state + chrome messaging + platform routing
       VideoStatus.tsx       # video fields + replay controls
+      CaptionsPanel.tsx     # caption status + collapsed probe report
+      CurrentSubtitle.tsx   # prev/current/next lines, word + line translate
+      TranscriptList.tsx    # scrollable transcript, seek by timestamp
+      ExplanationPanel.tsx  # Quick Translation (local) + DeepL/Google links
+      Words.tsx             # per-word clickable subtitle text
+      translate.ts          # on-device Translator API + fallback links
       PlaceholderSection.tsx
       styles.css
     shared/
-      types.ts              # VideoState (type-only)
+      types.ts              # VideoState + VideoPlatform (type-only)
+      captions.ts           # CaptionState / CaptionCue / CaptionProbe
       messages.ts           # message protocol (type-only)
       time.ts               # formatTime helper
   vite.config.ts
@@ -90,3 +122,7 @@ Extra checks:
 - Visit the YouTube homepage (a non-watch page) → panel shows
   "Open a YouTube video to begin."
 - During the brief load before the `<video>` exists → "Looking for video…".
+- Open a CanalSur Más video → panel shows **Video · Canal Sur**, video state,
+  and (for native-track videos) the synced subtitle + transcript. Videos with
+  no accessible captions show the "no accessible captions found" state and a
+  collapsed **Caption probe** report.
