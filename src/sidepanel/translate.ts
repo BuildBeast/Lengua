@@ -78,6 +78,33 @@ export async function translateOnDevice(
   return translator.translate(text);
 }
 
+// Sentence-ending punctuation (incl. Spanish inverted marks). A selection that
+// contains any of these reads as a full sentence, not a quick word/phrase.
+const SENTENCE_PUNCT = /[.!?;…¡¿]/;
+
+export interface SelectionClass {
+  /** Number of whitespace-separated words in the selection. */
+  wordCount: number;
+  /**
+   * True when the selection is long enough that on-device translation is
+   * likely to read literally (6+ words, or it spans a full sentence). Such
+   * results are labelled "Rough local translation" and steer toward DeepL/Google.
+   */
+  isLong: boolean;
+}
+
+/**
+ * Classify a selection by length so the UI can be honest about quality:
+ * 1–5 words → "Quick Translation"; 6+ words or sentence punctuation →
+ * "Rough Local Translation".
+ */
+export function classifySelection(text: string): SelectionClass {
+  const trimmed = text.trim();
+  const wordCount = trimmed ? trimmed.split(/\s+/).length : 0;
+  const isLong = wordCount >= 6 || SENTENCE_PUNCT.test(trimmed);
+  return { wordCount, isLong };
+}
+
 export function deeplUrl(text: string): string {
   return `https://www.deepl.com/translator#es/en/${encodeURIComponent(text)}`;
 }
