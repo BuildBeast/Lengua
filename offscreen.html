@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Lengua audio capture</title>
+  </head>
+  <body>
+    <!--
+      Headless offscreen document. MV3 service workers have no getUserMedia /
+      AudioContext / MediaRecorder, so tab-audio capture for transcription runs
+      here. This page has no UI and is created/destroyed on demand by the worker.
+    -->
+    <script type="module" src="/src/offscreen/offscreen.ts"></script>
+  </body>
+</html>

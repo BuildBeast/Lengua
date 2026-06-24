@@ -3,7 +3,7 @@
   "name": "Lengua",
   "version": "0.1.0",
   "description": "Spanish learning companion (YouTube + Canal Sur) in a Chrome side panel.",
-  "permissions": ["sidePanel", "tabs"],
+  "permissions": ["sidePanel", "tabs", "tabCapture", "offscreen", "activeTab"],
   "host_permissions": [
     "*://*.youtube.com/*",
     "*://*.canalsur.es/*",

@@ -15,7 +15,7 @@ import { CaptionsPanel } from './CaptionsPanel';
 import { CurrentSubtitle } from './CurrentSubtitle';
 import { TranscriptList } from './TranscriptList';
 import { ExplanationPanel, type Selection } from './ExplanationPanel';
-import { ManualTranscript } from './ManualTranscript';
+import { NoCaptionFallback } from './NoCaptionFallback';
 import { PlaceholderSection } from './PlaceholderSection';
 
 /** Best-effort platform from a tab URL, before any content script replies. */
@@ -36,6 +36,7 @@ export function App() {
   const [state, setState] = useState<VideoState | null>(null);
   const [caption, setCaption] = useState<CaptionState>(EMPTY_CAPTION_STATE);
   const [tabUrl, setTabUrl] = useState<string | undefined>(undefined);
+  const [tabId, setTabId] = useState<number | undefined>(undefined);
   const [selection, setSelection] = useState<Selection | null>(null);
 
   // The tab the panel is bound to + the video id we currently hold captions
@@ -81,6 +82,7 @@ export function App() {
     if (!chrome?.tabs?.query) return;
     chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
       tabIdRef.current = tab?.id;
+      setTabId(tab?.id);
       captionVideoIdRef.current = null;
       tabUrlRef.current = tab?.url;
       setTabUrl(tab?.url);
@@ -229,7 +231,8 @@ export function App() {
         {/* Selecting text anywhere in here offers a translation. */}
         <div className="captions-region" onMouseUp={selectPhrase}>
           {manualMode ? (
-            <ManualTranscript
+            <NoCaptionFallback
+              tabId={tabId}
               onWord={(word) => {
                 const text = word.trim();
                 if (text) setSelection({ text });

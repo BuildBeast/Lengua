@@ -24,6 +24,9 @@ export default defineConfig({
         canalSurDetector: 'src/content/canalSurDetector.ts',
         captionInterceptor: 'src/content/captionInterceptor.ts',
         sidepanel: 'sidepanel.html',
+        // Headless offscreen document for tab-audio capture (MV3 service
+        // workers have no getUserMedia/MediaRecorder). Normal HTML entry.
+        offscreen: 'offscreen.html',
       },
       output: {
         entryFileNames: '[name].js',

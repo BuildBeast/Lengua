@@ -42,6 +42,68 @@ export interface CaptionStateMessage {
   state: CaptionState;
 }
 
+// --- Tab-audio recording for transcription (no-caption fallback) -----------
+//
+// Capture a short window of the current tab's audio so the side panel can send
+// it for Spanish transcription. Flow:
+//   side panel  --AUDIO_RECORD_START_REQUEST-->  service worker
+//   service worker  --AUDIO_RECORD (target:'offscreen')-->  offscreen doc
+//   offscreen doc  --AudioRecordResult-->  service worker  -->  side panel
+// The service worker obtains the tab-audio stream id via
+// chrome.tabCapture.getMediaStreamId against the active tab. Doing it in the
+// worker is what carries the extension's activeTab invocation (granted when the
+// user clicks the toolbar icon) — the side panel context does not.
+//
+// The recorded clip travels back as an in-memory data: URL and never leaves the
+// device. Transcription is planned to run fully on-device (no API, no key, no
+// backend) — see docs/audio-transcription-plan.md.
+
+/** Side panel -> service worker: record the active tab's audio. */
+export interface AudioRecordStartRequestMessage {
+  type: 'AUDIO_RECORD_START_REQUEST';
+  /** Routing discriminator so only the worker handles this. */
+  target: 'background';
+  /** How long to record, milliseconds. */
+  durationMs: number;
+}
+
+/** Service worker -> offscreen document: record + analyse this stream. */
+export interface AudioRecordMessage {
+  type: 'AUDIO_RECORD';
+  /** Routing discriminator so only the offscreen doc handles this. */
+  target: 'offscreen';
+  streamId: string;
+  durationMs: number;
+}
+
+/**
+ * Result of one recording, returned offscreen -> worker -> side panel. The
+ * audio lives only in memory (a data: URL) for the panel's lifetime; nothing is
+ * written to disk and nothing is sent off-device.
+ */
+export interface AudioRecordResult {
+  /** True when capture + recording completed (regardless of silence). */
+  ok: boolean;
+  /** Human-readable failure reason when `ok` is false. */
+  error?: string;
+  /** The recorded clip as an in-memory data: URL (e.g. audio/webm;codecs=opus). */
+  audioDataUrl?: string;
+  /** MIME type the clip was recorded as. */
+  mimeType?: string;
+  /** Size of the recorded clip in bytes. */
+  blobSize?: number;
+  /** Decoded audio duration in seconds (authoritative). */
+  durationSec?: number;
+  /** Wall-clock recording time in milliseconds. */
+  wallMs?: number;
+  /** True when the clip is judged non-silent (see offscreen analysis). */
+  nonSilent?: boolean;
+  /** Peak absolute sample amplitude, 0..1. */
+  peak?: number;
+  /** Root-mean-square amplitude across the clip, 0..1. */
+  rms?: number;
+}
+
 export type RuntimeMessage =
   | GetVideoStateMessage
   | VideoStateMessage

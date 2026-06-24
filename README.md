@@ -17,16 +17,36 @@ the core.
   including ESP subtitles) are supported when the page exposes them. Verified on
   a real native-track video (1888 cues: current-subtitle sync, transcript
   highlight, and replay-current-line all work).
-- **No-caption fallback is future work.** Many Canal Sur videos may have no
-  accessible captions (e.g. behind HLS/DRM or a separate media CDN). In that
-  case the panel shows a clear "video detected, but no accessible captions
-  found" state plus a collapsed caption-probe report. On-device transcription
-  for un-captioned videos is not implemented yet.
+- **No-caption fallback.** Many Canal Sur videos have no accessible captions
+  (e.g. behind HLS/DRM or a separate media CDN). For those, you can **paste a
+  transcript** and get the same Quick Translation flow (word click,
+  phrase/sentence drag) as captions. **Local, on-device audio transcription is
+  coming next** — it will be free, with no API key, no account, and nothing
+  sent off your device. The **audio capture probe** (Record test 5s) is the
+  foundation already in place: it verifies the extension can capture audible
+  audio from the player (DRM streams often capture as silence).
+
+## Known limitations
+
+- **On-device translation is best for words/phrases, not full sentences.**
+  Chrome on-device translation is useful for quick word/phrase lookup but can be
+  literal on full subtitle lines, especially idioms such as "lo mismo" meaning
+  "maybe". For full-sentence quality, use the DeepL/Google fallback buttons.
+  Selections of 6+ words (or that span a full sentence) are labelled "Rough
+  Local Translation" and surface those fallbacks more prominently.
+- **Audio transcription is not built yet.** The tab-audio capture foundation is
+  in place (the Record test 5s probe), but transcription itself is still to
+  come. When it lands it will run **fully on-device** — free, no API key, no
+  account, no backend, nothing sent off your computer. DRM-protected streams
+  often capture as silence (the probe detects and reports this), which may make
+  audio transcription unavailable on exactly the videos we care about.
 
 ## Stack
 
 Chrome Manifest V3 · React · TypeScript · Vite · Chrome Side Panel API.
-No backend, AI, auth, database, payments, or analytics.
+No backend, auth, database, payments, analytics, API keys, or paid services.
+Translation is on-device, and audio transcription is planned to be on-device
+too — Lengua stays free and local-first.
 
 ## Project structure
 
@@ -35,9 +55,12 @@ lengua/
   public/
     manifest.json          # MV3 manifest (copied verbatim into dist/)
   sidepanel.html           # side panel HTML entry
+  offscreen.html           # headless offscreen doc entry (tab-audio capture)
   src/
     background/
-      serviceWorker.ts      # opens the side panel from the toolbar icon
+      serviceWorker.ts      # opens side panel; runs tab-audio recording
+    offscreen/
+      offscreen.ts          # captures + analyses tab audio, returns the clip
     content/
       youtubeDetector.ts    # YouTube content-script entry: polling + messaging
       captionInterceptor.ts # MAIN-world hook capturing YouTube caption requests
@@ -60,6 +83,10 @@ lengua/
       ExplanationPanel.tsx  # Quick Translation (local) + DeepL/Google links
       Words.tsx             # per-word clickable subtitle text
       translate.ts          # on-device Translator API + fallback links
+      NoCaptionFallback.tsx # no-caption surface: capture probe + manual paste
+      AudioProbe.tsx        # capture test + "local transcription coming next"
+      audioCapture.ts       # record-tab-audio request (side panel only)
+      ManualTranscript.tsx  # paste-your-own-text fallback (today's working path)
       PlaceholderSection.tsx
       styles.css
     shared/

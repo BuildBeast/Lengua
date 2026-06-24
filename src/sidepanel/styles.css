@@ -240,6 +240,26 @@ body {
   font-style: italic;
 }
 
+.explain__label {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--paused);
+}
+
+.explain__caveat {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text);
+  background: rgba(255, 176, 32, 0.1);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
 .explain__fallback {
   display: flex;
   align-items: center;
@@ -247,9 +267,27 @@ body {
   flex-wrap: wrap;
 }
 
+/* For long selections, push the user toward the stronger fallbacks. */
+.explain__fallback--prominent {
+  gap: 10px;
+}
+
 .explain__fallback-label {
   color: var(--text-muted);
   font-size: 12px;
+}
+
+.link-btn--prominent {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  padding: 7px 14px;
+  font-size: 13px;
+}
+
+.link-btn--prominent:hover {
+  border-color: var(--accent);
+  filter: brightness(1.08);
 }
 
 .link-btn {
@@ -344,6 +382,85 @@ body {
   margin-top: 8px;
 }
 
+/* Planned audio-transcription feature (no-caption fallback, not yet built) */
+.planned {
+  margin-top: 10px;
+  padding: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.planned__title {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.btn--record {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.rec-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex: 0 0 auto;
+}
+
+.planned__status {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Secondary manual-paste utility (collapsed by default) */
+.manual {
+  padding: 0;
+}
+
+.manual__summary {
+  cursor: pointer;
+  padding: 12px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  user-select: none;
+}
+
+.manual[open] .manual__summary {
+  border-bottom: 1px solid var(--border);
+}
+
+.manual__note,
+.manual-input,
+.manual .controls,
+.manual .transcript {
+  margin-left: 14px;
+  margin-right: 14px;
+}
+
+.manual__note {
+  margin-top: 12px;
+  margin-bottom: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-style: italic;
+}
+
+.manual .controls:last-child {
+  margin-bottom: 14px;
+}
+
 /* Manual transcript (no-caption fallback) */
 .manual-input {
   width: 100%;
@@ -377,6 +494,22 @@ body {
   color: var(--text-muted);
   font-size: 12px;
   font-style: italic;
+}
+
+/* Audio capture probe — metadata reported after a test recording */
+.probe-result {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.probe-result .field {
+  grid-template-columns: 90px 1fr;
+}
+
+.probe-result .field dd {
+  font-variant-numeric: tabular-nums;
+  word-break: break-word;
 }
 
 /* Transcript */

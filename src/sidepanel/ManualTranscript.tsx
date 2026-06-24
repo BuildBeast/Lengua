@@ -28,9 +28,11 @@ function splitSentences(paragraph: string): string[] {
 }
 
 /**
- * Fallback for videos with no captions: paste Spanish text, render it as a
- * transcript, and select words / phrases / sentences to translate — the same
- * way captioned videos work.
+ * Secondary, opt-in utility for the no-caption case: if the user happens to
+ * have the Spanish text elsewhere (a description, an article, their own notes)
+ * they can paste it and translate it here. This is NOT the main answer for
+ * uncaptioned videos — most give you no text to copy — so it lives collapsed
+ * beneath the planned audio-transcription feature.
  */
 export function ManualTranscript({ onWord }: ManualTranscriptProps) {
   const [draft, setDraft] = useState('');
@@ -38,15 +40,16 @@ export function ManualTranscript({ onWord }: ManualTranscriptProps) {
   const built = lines.length > 0;
 
   return (
-    <section className="card">
-      <h2 className="card__heading">Manual transcript</h2>
+    <details className="card manual">
+      <summary className="manual__summary">Paste Spanish text manually</summary>
+
+      <p className="manual__note">
+        A secondary option for when you already have the Spanish text somewhere. Most videos
+        without captions won’t let you copy any text, so this won’t help on its own.
+      </p>
 
       {!built ? (
         <>
-          <p className="empty">
-            No captions were found for this video. Paste the Spanish text below to read it
-            here, then click a word or select a phrase to translate it.
-          </p>
           <textarea
             className="manual-input"
             placeholder="Paste Spanish transcript or any Spanish text…"
@@ -85,14 +88,6 @@ export function ManualTranscript({ onWord }: ManualTranscriptProps) {
           </div>
         </>
       )}
-
-      {/* Placeholder for future audio transcription — intentionally inert. */}
-      <div className="controls">
-        <button type="button" className="btn" disabled title="Coming soon.">
-          Transcribe last 30s
-        </button>
-      </div>
-      <p className="coming-soon">Coming soon.</p>
-    </section>
+    </details>
   );
 }
